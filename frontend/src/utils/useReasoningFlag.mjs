@@ -7,7 +7,9 @@ export function getUseReasoningV1() {
   if (queryFlag !== null) {
     return queryFlag === 'true';
   }
-  const envFlag = (import.meta.env && import.meta.env.VITE_USE_REASONING_V1) || process.env.USE_REASONING_V1;
+  const envFlag =
+    import.meta.env?.VITE_USE_REASONING_V1 ??
+    (typeof process !== 'undefined' ? process.env.USE_REASONING_V1 : undefined);
   if (envFlag !== undefined) {
     return String(envFlag).toLowerCase() === 'true';
   }
