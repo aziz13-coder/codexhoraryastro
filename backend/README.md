@@ -45,3 +45,11 @@ have a default absolute weight of `2.0`. Tokens with square or opposition
 aspects without reception count as negative testimony; all others are
 positive. Each dispatched entry also reports whether the aspect is
 applying via an `applying` flag in the ledger.
+
+## Reasoning output modes
+
+The `/api/calculate-chart` endpoint can return reasoning details in two formats.
+By default, responses include the legacy `rationale` array.
+Setting the `useReasoningV1` flag—either as a `useReasoningV1=true` query
+parameter or the `USE_REASONING_V1=true` environment variable—switches the
+response to the new `reasoning_v1` field and omits `rationale`.

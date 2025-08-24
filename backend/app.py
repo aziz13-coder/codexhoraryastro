@@ -781,6 +781,11 @@ def calculate_chart():
 
         manual_houses = data.get('manualHouses')
 
+        use_reasoning_v1 = request.args.get('useReasoningV1')
+        if use_reasoning_v1 is None:
+            use_reasoning_v1 = os.getenv('USE_REASONING_V1', 'false')
+        use_reasoning_v1 = str(use_reasoning_v1).lower() == 'true'
+
         
 
         # NEW: Extract enhanced parameters
@@ -1103,12 +1108,21 @@ def calculate_chart():
                     if 'polarity' in entry and hasattr(entry['polarity'], 'name'):
                         entry['polarity'] = entry['polarity'].name
                 result['ledger'] = ledger
-                result['rationale'] = evaluation.get('rationale', [])
+                if use_reasoning_v1:
+                    result['reasoning_v1'] = evaluation.get('rationale', [])
+                else:
+                    result['rationale'] = evaluation.get('rationale', [])
             else:
-                result['rationale'] = result.get('reasoning', [])
+                if use_reasoning_v1:
+                    result['reasoning_v1'] = result.get('reasoning', [])
+                else:
+                    result['rationale'] = result.get('reasoning', [])
         except Exception as eval_error:
             logger.warning(f"evaluate_chart failed: {eval_error}")
-            result['rationale'] = result.get('reasoning', [])
+            if use_reasoning_v1:
+                result['reasoning_v1'] = result.get('reasoning', [])
+            else:
+                result['rationale'] = result.get('reasoning', [])
 
         return jsonify(result)
 
