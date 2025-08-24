@@ -781,7 +781,9 @@ def calculate_chart():
 
         manual_houses = data.get('manualHouses')
 
-        use_reasoning_v1 = request.args.get('useReasoningV1')
+        use_reasoning_v1 = request.headers.get('X-Use-Reasoning-V1')
+        if use_reasoning_v1 is None:
+            use_reasoning_v1 = request.args.get('useReasoningV1')
         if use_reasoning_v1 is None:
             use_reasoning_v1 = os.getenv('USE_REASONING_V1', 'false')
         use_reasoning_v1 = str(use_reasoning_v1).lower() == 'true'
