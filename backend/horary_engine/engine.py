@@ -60,6 +60,10 @@ from .dsl import (
     Role as DslRole,
 )
 from .polarity_weights import TestimonyKey
+from .polarity import Polarity
+from .utils import token_to_string
+
+USE_REASONING_V1 = os.getenv("USE_REASONING_V1", "").lower() in {"1", "true", "yes"}
 
 # Setup module logger
 logger = logging.getLogger(__name__)
@@ -143,6 +147,43 @@ def _structure_reasoning(reasoning: List[Any]) -> List[Dict[str, Any]]:
         structured.append({"stage": stage, "rule": rule, "weight": weight})
 
     return structured
+
+
+def serialize_reasoning_v1(ledger: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """Serialize a contribution ledger into standardized reasoning bundle."""
+
+    entries: List[Dict[str, Any]] = []
+    for idx, item in enumerate(ledger):
+        text_source = item.get("key") or item.get("rule") or item.get("reason") or ""
+        text = token_to_string(text_source)
+        stage = item.get("stage") or item.get("kind")
+        weight = item.get("weight", item.get("delta"))
+        pol = item.get("polarity")
+        if pol is None and weight is not None:
+            try:
+                w = float(weight)
+            except (TypeError, ValueError):
+                w = 0.0
+            if w > 0:
+                pol = Polarity.POSITIVE
+            elif w < 0:
+                pol = Polarity.NEGATIVE
+            else:
+                pol = Polarity.NEUTRAL
+        if isinstance(pol, Polarity):
+            polarity = pol.name.lower()
+        else:
+            polarity = str(pol).lower() if pol is not None else None
+        entries.append(
+            {
+                "id": idx,
+                "stage": stage,
+                "text": text,
+                "weight": weight,
+                "polarity": polarity,
+            }
+        )
+    return {"version": "reasoning.v1", "entries": entries}
 
 
 def _evaluate_enhanced(
@@ -1275,6 +1316,7 @@ class EnhancedTraditionalHoraryJudgmentEngine:
             judgment["reasoning"] = structured_reasoning
             judgment["confidence"] = int(evaluation["confidence"]) if not judgment.get("hybrid_confidence_needed") else judgment["confidence"]
             judgment["scoring_trace"] = evaluation["trace"]
+            reasoning_bundle = serialize_reasoning_v1(structured_reasoning) if USE_REASONING_V1 else None
 
             # Serialize chart data for frontend
             chart_data_serialized = serialize_chart_for_frontend(chart, chart.solar_analyses)
@@ -1288,7 +1330,8 @@ class EnhancedTraditionalHoraryJudgmentEngine:
                 "confidence": judgment["confidence"],
                 "reasoning": judgment["reasoning"],
                 "scoring_trace": judgment.get("scoring_trace", []),
-                
+                **({"reasoning_v1": reasoning_bundle} if reasoning_bundle is not None else {}),
+
                 "chart_data": chart_data_serialized,
                 
                 "question_analysis": question_analysis,

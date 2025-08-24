@@ -14,7 +14,11 @@ sys.path.append(str(Path(__file__).resolve().parents[1]))
 from horary_config import cfg
 
 from category_router import get_contract
-from horary_engine.engine import extract_testimonies
+from horary_engine.engine import (
+    extract_testimonies,
+    serialize_reasoning_v1,
+    USE_REASONING_V1,
+)
 from horary_engine.rationale import build_rationale
 from horary_engine.utils import token_to_string
 from horary_engine.serialization import serialize_primitive, deserialize_chart_for_evaluation
@@ -112,13 +116,17 @@ def evaluate_chart(
         ],
     )
     rationale = build_rationale(ledger)
+    reasoning_bundle = serialize_reasoning_v1(ledger) if USE_REASONING_V1 else None
     verdict = "YES" if score > 0 else "NO"
-    return {
+    result = {
         "verdict": verdict,
         "ledger": ledger,
         "rationale": rationale,
         "dsl_primitives": dsl_primitives,
     }
+    if reasoning_bundle is not None:
+        result["reasoning_v1"] = reasoning_bundle
+    return result
 
 
 if __name__ == "__main__":
