@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { buildChartPayload } from './utils/buildChartPayload';
 import { parseReasoningEntry } from './utils/parseReasoning.mjs';
 import { cleanMoonText } from './utils/cleanMoonText';
+import { renderReasoning } from './utils/renderReasoning';
 
 import { 
   Calendar, 
@@ -240,6 +241,7 @@ const getSignFromDegree = (longitude) => {
 
 // NEW: JudgmentBreakdown Component
 const JudgmentBreakdown = ({ reasoning, darkMode }) => {
+  const useReasoningV1 = reasoning && typeof reasoning === 'object' && Array.isArray(reasoning.entries);
 
   const getPlanetColor = (planet) => {
     const colors = {
@@ -314,9 +316,13 @@ const JudgmentBreakdown = ({ reasoning, darkMode }) => {
     }
     return content;
   };
-  // Transform reasoning if it's still in string format
+  // Transform reasoning depending on format
   const structuredReasoning = useMemo(() => {
-    if (!reasoning || reasoning.length === 0) return [];
+    if (!reasoning) return [];
+    if (useReasoningV1) {
+      return reasoning.entries || [];
+    }
+    if (!Array.isArray(reasoning) || reasoning.length === 0) return [];
 
     const first = reasoning[0];
 
@@ -347,19 +353,21 @@ const JudgmentBreakdown = ({ reasoning, darkMode }) => {
       const { rule, weight } = parseReasoningEntry(text);
       return { stage: 'General', rule, weight };
     });
-  }, [reasoning]);
+  }, [reasoning, useReasoningV1]);
 
   // Determine the maximum absolute weight across all testimonies
   const maxWeight = useMemo(() => {
+    if (useReasoningV1) return 0;
     return structuredReasoning.reduce((max, item) => {
       const absWeight = Math.abs(item.weight || 0);
       return absWeight > max ? absWeight : max;
       // This ensures bars are scaled relative to the strongest testimony
     }, 0);
-  }, [structuredReasoning]);
+  }, [structuredReasoning, useReasoningV1]);
 
   // Group by stage
   const groupedByStage = useMemo(() => {
+    if (useReasoningV1) return {};
     const groups = {};
     structuredReasoning.forEach(item => {
       if (!groups[item.stage]) {
@@ -368,7 +376,7 @@ const JudgmentBreakdown = ({ reasoning, darkMode }) => {
       groups[item.stage].push(item);
     });
     return groups;
-  }, [structuredReasoning]);
+  }, [structuredReasoning, useReasoningV1]);
 
   const getWeightColor = (weight) => {
     if (weight > 0) return 'bg-emerald-500';
@@ -386,6 +394,10 @@ const JudgmentBreakdown = ({ reasoning, darkMode }) => {
     if (stageWeight < 0) return 'bg-red-500';
     return 'bg-amber-500';
   };
+
+  if (useReasoningV1) {
+    return <div className="space-y-2">{renderReasoning(reasoning)}</div>;
+  }
 
   return (
     <div className="space-y-4">
