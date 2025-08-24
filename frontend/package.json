@@ -31,7 +31,7 @@
     "build:appx-from-working": "npm run build && npm run build-backend-exe && npm run electron:pack && npm run fix-and-package",
     "validate:icons": "node validate-icons.js",
     "prebuild": "npm run validate:icons",
-    "test": "node tests/parseReasoning.test.mjs"
+    "test": "node tests/parseReasoning.test.mjs && node tests/useReasoningFlag.test.mjs"
   },
   "dependencies": {
     "lucide-react": "^0.263.1",

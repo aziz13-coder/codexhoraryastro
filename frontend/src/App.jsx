@@ -3,6 +3,7 @@ import { buildChartPayload } from './utils/buildChartPayload';
 import { parseReasoningEntry } from './utils/parseReasoning.mjs';
 import { cleanMoonText } from './utils/cleanMoonText';
 import { renderReasoning } from './utils/renderReasoning';
+import { getUseReasoningV1 } from './utils/useReasoningFlag.mjs';
 
 import { 
   Calendar, 
@@ -77,6 +78,12 @@ function getApiBaseUrl() {
   return import.meta.env.VITE_API_BASE_URL || window.API_BASE_URL || 'http://localhost:5000';
 }
 
+// Determine which reasoning format to request from the backend
+const USE_REASONING_V1 = getUseReasoningV1();
+if (typeof window !== 'undefined') {
+  window.USE_REASONING_V1 = USE_REASONING_V1;
+}
+
 // API Service Layer
 class VoxStellaAPI {
   static async request(endpoint, options = {}) {
@@ -106,7 +113,8 @@ class VoxStellaAPI {
   }
 
   static async calculateChart(chartData) {
-    return this.request('/api/calculate-chart', {
+    const endpoint = `/api/calculate-chart${USE_REASONING_V1 ? '?useReasoningV1=true' : ''}`;
+    return this.request(endpoint, {
       method: 'POST',
       body: JSON.stringify(chartData),
     });
