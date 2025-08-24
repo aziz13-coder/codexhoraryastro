@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { buildChartPayload } from './utils/buildChartPayload';
 import { parseReasoningEntry } from './utils/parseReasoning.mjs';
 import { cleanMoonText } from './utils/cleanMoonText';
-import { renderReasoning } from './utils/renderReasoning';
+import { renderReasoning } from './utils/renderReasoning.jsx';
 import { getUseReasoningV1 } from './utils/useReasoningFlag.mjs';
 
 import { 
