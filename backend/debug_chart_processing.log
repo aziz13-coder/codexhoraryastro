@@ -1,0 +1,5 @@
+2025-08-22 13:20:33,355 - horary_config - INFO - Loaded horary configuration from /mnt/c/Users/sabaa/Downloads/codexhorary/backend/horary_constants.yaml
+2025-08-22 13:20:42,612 - horary_engine.services.geolocation - INFO - TimezoneFinder initialized successfully
+2025-08-22 13:20:42,626 - urllib3.util.retry - DEBUG - Converted retries value: 2 -> Retry(total=2, connect=None, read=None, redirect=None, status=None)
+2025-08-22 13:20:42,627 - urllib3.util.retry - DEBUG - Converted retries value: 2 -> Retry(total=2, connect=None, read=None, redirect=None, status=None)
+2025-08-22 13:20:42,627 - horary_engine.services.geolocation - INFO - Geolocator initialized successfully
