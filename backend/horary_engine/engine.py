@@ -4023,48 +4023,6 @@ class EnhancedTraditionalHoraryJudgmentEngine:
 
         return {"perfects": False, "reason": "No future perfection within timeframe"}
     
-    def _calculate_future_aspect_time(
-        self,
-        pos1: PlanetPosition,
-        pos2: PlanetPosition,
-        aspect_type: Aspect,
-        jd_start: float,
-        max_days: int,
-    ) -> float:
-        """Analytically solve when two planets perfect a future aspect.
-
-        Solves ``A₀ + v_A·t = B₀ + v_B·t + target_angle`` for the smallest
-        positive ``t``. Speeds are signed so retrograde motion is respected.
-        ``Δλ`` is normalised to ``[0, 360)`` before solving. Returns ``None``
-        if perfection does not occur within ``max_days``.
-        """
-
-        target_angles = {
-            Aspect.CONJUNCTION: 0,
-            Aspect.SEXTILE: 60,
-            Aspect.SQUARE: 90,
-            Aspect.TRINE: 120,
-            Aspect.OPPOSITION: 180,
-        }
-
-        target_angle = target_angles.get(aspect_type)
-        if target_angle is None:
-            return None
-
-        # Relative speed (signed)
-        relative_speed = pos1.speed - pos2.speed
-        if abs(relative_speed) < 1e-6:
-            return None
-
-        # Normalised longitudinal difference
-        delta = (pos2.longitude + target_angle - pos1.longitude) % 360.0
-
-        # Solve for time
-        t = delta / relative_speed
-        if t <= 0 or t > max_days:
-            return None
-
-        return t
     
     def _check_house_placement_perfection(self, chart: HoraryChart, querent: Planet, quesited: Planet, window_days: int = None) -> Dict[str, Any]:
         """Check for perfection via planets in quesited house aspecting house ruler"""
@@ -4684,22 +4642,23 @@ class EnhancedTraditionalHoraryJudgmentEngine:
             return degrees_remaining / abs(pos.speed) if pos.speed != 0 else None
     
     def _days_to_aspect_perfection(self, pos1: PlanetPosition, pos2: PlanetPosition, aspect_info: Dict) -> float:
-        """Calculate days until aspect perfects using analytic solver."""
-        aspect = aspect_info.get("aspect")
-        if aspect:
-            t = self._calculate_future_aspect_time(
-                pos1, pos2, aspect, jd_start=0.0, max_days=cfg().timing.max_future_days
-            )
-            return t if t is not None else float("inf")
+        """Calculate days until an applying aspect perfects.
 
-        degrees_to_exact = aspect_info.get("degrees_to_exact", 0)
-        relative_speed = pos1.speed - pos2.speed
-        if relative_speed == 0:
+        Falls back to ``inf`` when no aspect is present or perfection is
+        outside the configured search window."""
+
+        aspect = aspect_info.get("aspect")
+        if not aspect:
             return float("inf")
-        t = degrees_to_exact / relative_speed
-        if t <= 0:
-            t += 360.0 / abs(relative_speed)
-        return t
+
+        t = self._calculate_future_aspect_time(
+            pos1,
+            pos2,
+            aspect,
+            jd_start=0.0,
+            max_days=cfg().timing.max_future_days,
+        )
+        return t if t is not None else float("inf")
     
     def _enhanced_perfects_in_sign(self, pos1: PlanetPosition, pos2: PlanetPosition,
                                   aspect_info: Dict, chart: HoraryChart) -> Tuple[bool, Optional[Dict[str, Any]]]:
@@ -4745,75 +4704,52 @@ class EnhancedTraditionalHoraryJudgmentEngine:
 
         return True, None
 
-    def _calculate_future_aspect_time(self, pos1: PlanetPosition, pos2: PlanetPosition, 
-                                     aspect: Aspect, jd_start: float, max_days: int = 30) -> Optional[float]:
-        """Calculate days until two planets perfect an aspect.
-        
-        Args:
-            pos1, pos2: Planet positions with longitude and speed
-            aspect: The target aspect (conjunction, etc.)
-            jd_start: Starting Julian day  
-            max_days: Maximum days to search
-            
-        Returns:
-            Days until perfection, or None if no perfection within window
+    def _calculate_future_aspect_time(
+        self,
+        pos1: PlanetPosition,
+        pos2: PlanetPosition,
+        aspect: Aspect,
+        jd_start: float,
+        max_days: int = 30,
+    ) -> Optional[float]:
+        """Analytically solve when two planets perfect an aspect.
+
+        Uses signed velocities so retrograde motion is honoured. Returns the
+        smallest positive time ``t`` (in days) such that ``(lon1 - lon2)``
+        achieves the aspect's angular distance. ``None`` is returned when the
+        perfection lies outside ``max_days``.
         """
-        
-        # Note: Debug logging removed for production
-        
-        # Get target angular separation for this aspect
-        target_angle = aspect.degrees
-        
-        # Current positions and speeds
+
+        target_angles = {
+            Aspect.CONJUNCTION: 0,
+            Aspect.SEXTILE: 60,
+            Aspect.SQUARE: 90,
+            Aspect.TRINE: 120,
+            Aspect.OPPOSITION: 180,
+        }
+
+        A = target_angles.get(aspect)
+        if A is None:
+            return None
+
         lon1 = pos1.longitude
         lon2 = pos2.longitude
-        speed1 = pos1.speed  # degrees per day
-        speed2 = pos2.speed  # degrees per day
-        
-        # Handle zodiacal boundaries for angular calculations
-        def normalize_angle(angle):
-            while angle < 0:
-                angle += 360
-            while angle >= 360:
-                angle -= 360
-            return angle
-        
-        # Current angular separation
-        current_sep = normalize_angle(lon2 - lon1)
-        
-        # For conjunction (0°), we need the planets to be at the same longitude
-        if target_angle == 0:
-            # Find the shortest path to conjunction
-            if current_sep > 180:
-                # Planet 2 is behind planet 1, use negative separation  
-                current_sep = current_sep - 360
-            
-            # Relative speed: how fast are they approaching each other?
-            relative_speed = speed2 - speed1
-            
-            # If relative speed is very small or wrong direction, no perfection
-            if abs(relative_speed) < 0.001:  # basically stationary relative to each other
-                return None
-            
-            if current_sep > 0 and relative_speed <= 0:  # Planet 2 ahead, but getting further ahead
-                return None
-            if current_sep < 0 and relative_speed <= 0:  # Planet 2 behind, but getting further behind
-                return None
-            
-            # Calculate days to conjunction
-            days_to_perfection = abs(current_sep / relative_speed)
-            
-            # Check if within time window
-            if 0 < days_to_perfection <= max_days:
-                return days_to_perfection
-            else:
-                return None
-        
-        # For other aspects (sextile, square, trine, opposition), more complex calculation needed
-        # For now, we'll focus on conjunctions since that's the immediate bug
-        else:
-            # TODO: Implement other aspects if needed
+        speed1 = pos1.speed
+        speed2 = pos2.speed
+
+        theta0 = (lon1 - lon2) % 360.0
+        v_rel = speed1 - speed2
+        if abs(v_rel) < 1e-6:
             return None
+
+        delta = (A - theta0) % 360.0
+        if v_rel < 0:
+            delta -= 360.0
+
+        t = delta / v_rel
+        if t <= 0 or t > max_days:
+            return None
+        return t
     
     def _check_enhanced_mutual_reception(self, chart: HoraryChart, planet1: Planet, planet2: Planet) -> str:
         """Enhanced mutual reception check using centralized calculator"""
