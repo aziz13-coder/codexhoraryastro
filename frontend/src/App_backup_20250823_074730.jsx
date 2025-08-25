@@ -2625,7 +2625,9 @@ const MoonStoryPanel = ({ chart, darkMode }) => {
 
     // Use the authoritative void of course status from backend (same as other tabs)
     const moonCondition = chart.general_info?.moon_condition;
-    const applyingAspects = currentMoonAspects.filter(aspect => aspect.applying);
+    const applyingAspects = currentMoonAspects.filter(
+      aspect => aspect.perfection_eta_days > 0
+    );
     
     if (!moonCondition) {
       // Fallback to old logic if backend data not available
@@ -2826,6 +2828,7 @@ const MoonStoryPanel = ({ chart, darkMode }) => {
               const cleanOtherPlanet = otherPlanet === 'Moon' ? 'Moon' : otherPlanet;
               const aspectColor = getAspectColor(aspect.aspect);
               const aspectSymbol = getAspectSymbol(aspect.aspect);
+              const isApplying = aspect.perfection_eta_days > 0;
               
               return (
                 <div key={index} className="flex items-center justify-between p-2 rounded bg-gray-50 dark:bg-gray-800/50">
@@ -2836,11 +2839,11 @@ const MoonStoryPanel = ({ chart, darkMode }) => {
                   <div className="text-right">
                     <div className="text-xs">{aspect.orb?.toFixed(1)}° orb</div>
                     <div className={`text-xs px-2 py-1 rounded ${
-                      aspect.applying 
-                        ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' 
+                      isApplying
+                        ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
                         : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
                     }`}>
-                      {aspect.applying ? 'Applying' : 'Separating'}
+                      {isApplying ? 'Applying' : 'Separating'}
                     </div>
                   </div>
                 </div>
@@ -3391,7 +3394,8 @@ const EnhancedChartWheel = ({ chart, darkMode }) => {
             };
             
             const color = aspectColors[aspect.aspect] || '#6b7280';
-            
+            const isApplying = (aspect.time_to_perfection ?? -1) > 0;
+
             return (
               <g key={index}>
                 <line
@@ -3400,12 +3404,12 @@ const EnhancedChartWheel = ({ chart, darkMode }) => {
                   x2={x2}
                   y2={y2}
                   stroke={color}
-                  strokeWidth={aspect.applying ? "3" : "2"}
-                  strokeDasharray={aspect.applying ? "none" : "5,5"}
-                  opacity={aspect.applying ? 0.9 : 0.6}
+                  strokeWidth={isApplying ? "3" : "2"}
+                  strokeDasharray={isApplying ? "none" : "5,5"}
+                  opacity={isApplying ? 0.9 : 0.6}
                 />
                 {/* Enhanced: Add glow effect for applying aspects */}
-                {aspect.applying && (
+                {isApplying && (
                   <line
                     x1={x1}
                     y1={y1}
@@ -3800,7 +3804,8 @@ const AspectsTablePanel = ({ chart, darkMode }) => {
                 const aspectColor = getAspectColor(aspect.aspect);
                 const aspectSymbol = getAspectSymbol(aspect.aspect);
                 const orbQuality = getOrbQuality(aspect.orb);
-                
+                const isApplying = (aspect.time_to_perfection ?? -1) > 0;
+
                 return (
                   <tr key={index} className="border-b border-gray-100 dark:border-gray-700 last:border-b-0">
                     <td className="py-3">
@@ -3823,16 +3828,16 @@ const AspectsTablePanel = ({ chart, darkMode }) => {
                     </td>
                     <td className="py-3">
                       <span className={`px-2 py-1 text-xs rounded ${
-                        aspect.applying 
-                          ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' 
+                        isApplying
+                          ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
                           : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
                       }`}>
-                        {aspect.applying ? 'Applying' : 'Separating'}
+                        {isApplying ? 'Applying' : 'Separating'}
                       </span>
                     </td>
                     <td className="py-3">
                       <div className="text-xs text-gray-600 dark:text-gray-300">
-                        {aspect.applying ? 'Will perfect' : 'Past perfection'}
+                        {isApplying ? 'Will perfect' : 'Past perfection'}
                         {aspect.exact_time && (
                           <div className="text-purple-600 dark:text-purple-400">
                             {new Date(aspect.exact_time).toLocaleDateString()}

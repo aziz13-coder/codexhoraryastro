@@ -3,6 +3,7 @@ from enum import Enum
 from typing import Dict, List, Tuple, Optional
 import datetime
 import logging
+import math
 from horary_config import cfg
 
 
@@ -109,6 +110,7 @@ class AspectInfo:
     aspect: Aspect
     orb: float
     applying: bool
+    time_to_perfection: float = math.inf
     perfection_within_sign: bool = True
     exact_time: Optional[datetime.datetime] = None
     degrees_to_exact: float = 0.0

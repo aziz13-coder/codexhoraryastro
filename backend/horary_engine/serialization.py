@@ -2,6 +2,7 @@
 
 from typing import Any, Dict, Optional
 import datetime
+import math
 
 import swisseph as swe
 
@@ -128,6 +129,9 @@ def serialize_chart_for_frontend(
                 "aspect": aspect.aspect.display_name,
                 "orb": round(aspect.orb, 2),
                 "applying": aspect.applying,
+                "time_to_perfection": round(aspect.time_to_perfection, 2)
+                if math.isfinite(aspect.time_to_perfection)
+                else None,
                 "perfection_within_sign": aspect.perfection_within_sign,
                 "degrees_to_exact": round(aspect.degrees_to_exact, 2),
                 "exact_time": aspect.exact_time.isoformat() if aspect.exact_time else None,
@@ -254,6 +258,8 @@ def deserialize_chart_for_evaluation(data: Dict[str, Any]) -> HoraryChart:
                 aspect=AspectType[a["aspect"].upper()],
                 orb=a["orb"],
                 applying=a.get("applying", False),
+                time_to_perfection=a.get("time_to_perfection", math.inf),
+                perfection_within_sign=a.get("perfection_within_sign", True),
                 exact_time=datetime.datetime.fromisoformat(a["exact_time"])
                 if a.get("exact_time")
                 else None,
