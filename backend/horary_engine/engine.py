@@ -2783,17 +2783,20 @@ class EnhancedTraditionalHoraryJudgmentEngine:
             
             # Reception helps but is not absolutely required for translation
             reception_bonus = 0
-            reception_display = ""
             reception_note = ""
+            receptions: List[str] = []
+            reception_data: List[Dict[str, Any]] = []
 
-            if reception_with_querent or reception_with_quesited:
+            if reception_with_querent:
+                receptions.append(reception_querent_data["display_text"])
+                reception_data.append(reception_querent_data)
+            if reception_with_quesited:
+                receptions.append(reception_quesited_data["display_text"])
+                reception_data.append(reception_quesited_data)
+
+            if receptions:
                 reception_bonus = 10
-                if reception_with_querent:
-                    reception_display = reception_querent_data["display_text"]
-                elif reception_with_quesited:
-                    reception_display = reception_quesited_data["display_text"]
-                if reception_display:
-                    reception_note = " with reception"
+                reception_note = " with reception"
                 
             # Base confidence from traditional sources
             confidence = 65 + reception_bonus
@@ -2805,19 +2808,17 @@ class EnhancedTraditionalHoraryJudgmentEngine:
                 combustion_penalty = 15
                 confidence -= combustion_penalty
                 
-            # Assess favorability based on traditional horary doctrine:
-            # Translation of light = perfection = always favorable (YES)
-            # Hard aspects indicate challenges in the process, not failure
-            favorable = True  # Translation always indicates success via perfection
-            challenge_reasons = []  # Track challenges, not negations
+            # Assess favorability dynamically based on translator condition and aspects
+            negative_reasons: List[str] = []
             hard = {Aspect.SQUARE, Aspect.OPPOSITION}
             if (querent_aspect.aspect in hard) or (quesited_aspect.aspect in hard):
-                # Traditional doctrine: hard aspects show difficult path to success, not failure
-                confidence -= 15  # Reduce confidence due to challenges (increased penalty)
-                challenge_reasons.append("hard aspect")
+                confidence -= 15
+                negative_reasons.append("hard aspect")
             if combustion_penalty:
-                confidence -= 10  # Reduce confidence but maintain positive outcome
-                challenge_reasons.append("translator combust")
+                confidence -= 10
+                negative_reasons.append("translator combust")
+
+            favorable = len(negative_reasons) == 0
             
             # Calculate validation metrics for transparency
             translator_speed = abs(pos.speed)
@@ -2833,16 +2834,14 @@ class EnhancedTraditionalHoraryJudgmentEngine:
                 "found": True,
                 "translator": planet,
                 "favorable": favorable,
+                "verdict": "favorable" if favorable else "unfavorable",
                 "confidence": min(95, max(35, confidence)),  # Cap between 35-95%
                 "sequence": sequence + reception_note + sequence_note,
-                "reception": reception_display if reception_display else "none",
-                "reception_data": {
-                    "querent_reception": reception_querent_data,
-                    "quesited_reception": reception_quesited_data
-                },
+                "receptions": receptions if receptions else ["none"],
+                "reception_data": reception_data,
                 "combustion_penalty": combustion_penalty,
-                "challenge_reasons": challenge_reasons,  # Challenges in path to success
-                "negative_reasons": [],  # Keep empty for backward compatibility
+                "challenge_reasons": [],
+                "negative_reasons": negative_reasons,
                 "validation_details": {
                     "speed_validated": translator_speed > max(querent_speed, quesited_speed),
                     "translator_speed": translator_speed,
