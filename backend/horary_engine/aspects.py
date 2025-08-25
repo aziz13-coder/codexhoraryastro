@@ -154,7 +154,7 @@ def calculate_moon_next_aspect(
                 t = time_to_perfection(moon_pos, planet_pos, aspect_type)
                 if t > 0:
                     within_sign = _will_perfect_before_sign_exit(
-                        moon_pos, planet_pos, aspect_type
+                        moon_pos, planet_pos, aspect_type, t
                     )
 
                     # Skip aspects that perfect after Moon leaves its current sign
@@ -258,12 +258,15 @@ def calculate_enhanced_aspects(
                 if orb_diff <= max_orb:
                     t = time_to_perfection(pos1, pos2, aspect_type)
                     applying = t > 0 and math.isfinite(t)
-                    within_sign = _will_perfect_before_sign_exit(
-                        pos1, pos2, aspect_type
-                    )
+                    if applying:
+                        within_sign = _will_perfect_before_sign_exit(
+                            pos1, pos2, aspect_type, t
+                        )
+                    else:
+                        within_sign = False
 
                     degrees_to_exact, exact_time = calculate_enhanced_degrees_to_exact(
-                        pos1, pos2, aspect_type, jd_ut
+                        pos1, pos2, aspect_type, jd_ut, t
                     )
 
                     aspects.append(
@@ -273,6 +276,7 @@ def calculate_enhanced_aspects(
                             aspect=aspect_type,
                             orb=orb_diff,
                             applying=applying,
+                            time_to_perfection=t,
                             perfection_within_sign=within_sign,
                             exact_time=exact_time,
                             degrees_to_exact=degrees_to_exact,
@@ -316,21 +320,26 @@ def calculate_moiety_based_orb(
 
 def is_applying_enhanced(
     pos1: PlanetPosition, pos2: PlanetPosition, aspect: Aspect, jd_ut: float
-) -> Tuple[bool, bool]:
-    """Determine applying status and sign perfection flag.
+) -> Tuple[bool, bool, float]:
+    """Determine applying status, sign perfection flag and timing.
 
-    Returns a tuple ``(applying, perfection_within_sign)`` where ``applying``
-    is ``True`` if the orb is shrinking and ``perfection_within_sign`` indicates
-    whether the aspect perfects before either planet changes signs.
+    Returns a tuple ``(applying, perfection_within_sign, time_to_perfection)``
+    where ``applying`` is ``True`` if the orb is shrinking and
+    ``perfection_within_sign`` indicates whether the aspect perfects before
+    either planet changes signs. ``time_to_perfection`` is the analytical time
+    in days until perfection (positive means future, negative means past).
     """
 
     t = time_to_perfection(pos1, pos2, aspect)
     applying = t > 0 and math.isfinite(t)
-    perfection_within_sign = _will_perfect_before_sign_exit(
-        pos1, pos2, aspect
-    )
+    if applying:
+        perfection_within_sign = _will_perfect_before_sign_exit(
+            pos1, pos2, aspect, t
+        )
+    else:
+        perfection_within_sign = False
 
-    return applying, perfection_within_sign
+    return applying, perfection_within_sign, t
 
 
 def _calculate_orb_to_aspect(pos1: PlanetPosition, pos2: PlanetPosition, aspect: Aspect) -> float:
@@ -371,11 +380,10 @@ def _calculate_orb_to_aspect_at_time(pos1: PlanetPosition, pos2: PlanetPosition,
 
 
 def _will_perfect_before_sign_exit(
-    pos1: PlanetPosition, pos2: PlanetPosition, aspect: Aspect
+    pos1: PlanetPosition, pos2: PlanetPosition, aspect: Aspect, t: float
 ) -> bool:
     """Check if aspect will perfect before either planet exits its current sign"""
 
-    t = time_to_perfection(pos1, pos2, aspect)
     if t <= 0 or not math.isfinite(t):
         return False
 
@@ -399,7 +407,11 @@ def _will_perfect_before_sign_exit(
 
 
 def calculate_enhanced_degrees_to_exact(
-    pos1: PlanetPosition, pos2: PlanetPosition, aspect: Aspect, jd_ut: float
+    pos1: PlanetPosition,
+    pos2: PlanetPosition,
+    aspect: Aspect,
+    jd_ut: float,
+    t: Optional[float] = None,
 ) -> Tuple[float, Optional[datetime.datetime]]:
     """Enhanced degrees and time calculation"""
 
@@ -411,7 +423,8 @@ def calculate_enhanced_degrees_to_exact(
 
     # Calculate exact time if planets are applying
     exact_time = None
-    t = time_to_perfection(pos1, pos2, aspect)
+    if t is None:
+        t = time_to_perfection(pos1, pos2, aspect)
     if t > 0 and math.isfinite(t):
         max_future_days = cfg().timing.max_future_days
         if t < max_future_days:
