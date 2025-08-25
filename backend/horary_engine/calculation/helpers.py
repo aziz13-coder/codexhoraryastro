@@ -147,7 +147,7 @@ def calculate_sign_boundary_longitude(current_longitude: float, direction: int) 
             next_boundary = 0
     else:  # Retrograde motion - previous sign backward
         next_boundary = current_sign_start
-        if current_longitude == current_sign_start:  # Exactly on boundary
+        if abs(current_longitude - current_sign_start) < 1e-6:  # Exactly on boundary
             next_boundary = current_sign_start - 30
             if next_boundary < 0:
                 next_boundary = 330
