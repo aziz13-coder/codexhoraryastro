@@ -3183,7 +3183,7 @@ const MoonStoryPanel = ({ chart, darkMode }) => {
     // Use the authoritative void of course status from backend (same as other tabs)
     const moonCondition = chart.general_info?.moon_condition;
     const applyingAspects = currentMoonAspects.filter(
-      aspect => aspect.perfection_eta_days > 0
+      aspect => aspect.applying ?? ((aspect.time_to_perfection ?? 0) > 0)
     );
     
     if (!moonCondition) {
@@ -3385,7 +3385,7 @@ const MoonStoryPanel = ({ chart, darkMode }) => {
               const cleanOtherPlanet = otherPlanet === 'Moon' ? 'Moon' : otherPlanet;
               const aspectColor = getAspectColor(aspect.aspect);
               const aspectSymbol = getAspectSymbol(aspect.aspect);
-              const isApplying = aspect.perfection_eta_days > 0;
+              const isApplying = aspect.applying ?? ((aspect.time_to_perfection ?? 0) > 0);
               
               return (
                 <div key={index} className="flex items-center justify-between p-2 rounded bg-gray-50 dark:bg-gray-800/50">
