@@ -2762,32 +2762,34 @@ const ReasoningTimelinePanel = ({ reasoning, chart, darkMode }) => {
 
 // NEW: Factors Panel
 const FactorsPanel = ({ chart, darkMode }) => {
-  // Extract house information from traditional factors or reasoning
+  // Derive houses directly from backend classification
   const getExaminedHouses = () => {
-    const houses = [];
-    
-    // Default horary houses
-    houses.push({ number: 1, description: "Querent (Person asking)" });
-    
-    // Check if this is a relationship/partnership question
-    const questionText = chart.question?.toLowerCase() || '';
-    if (questionText.includes('relationship') || questionText.includes('marriage') || questionText.includes('partner') || questionText.includes('love')) {
-      houses.push({ number: 7, description: "Partnerships & relationships" });
-    } else if (questionText.includes('career') || questionText.includes('job') || questionText.includes('work')) {
-      houses.push({ number: 10, description: "Career & reputation" });
-    } else if (questionText.includes('money') || questionText.includes('finance') || questionText.includes('wealth')) {
-      houses.push({ number: 2, description: "Money & possessions" });
-    } else if (questionText.includes('travel') || questionText.includes('journey')) {
-      houses.push({ number: 3, description: "Short journeys" });
-      houses.push({ number: 9, description: "Long journeys" });
-    } else if (questionText.includes('health') || questionText.includes('illness')) {
-      houses.push({ number: 6, description: "Health & illness" });
-    } else {
-      // Default to 7th house for general questions about others
-      houses.push({ number: 7, description: "Others & open enemies" });
-    }
-    
-    return houses;
+    const houseDescriptions = {
+      1: "Querent (Person asking)",
+      2: "Money & possessions",
+      3: "Short journeys",
+      4: "Home & family",
+      5: "Children & creativity",
+      6: "Health & illness",
+      7: "Others & open enemies",
+      8: "Death & debts",
+      9: "Long journeys & religion",
+      10: "Career & reputation",
+      11: "Friends & hopes",
+      12: "Secrets & sorrows",
+    };
+
+    const houses =
+      chart?.question_analysis?.relevant_houses && chart.question_analysis.relevant_houses.length
+        ? Array.from(new Set(chart.question_analysis.relevant_houses))
+        : [1];
+
+    return houses
+      .sort((a, b) => a - b)
+      .map((num) => ({
+        number: num,
+        description: houseDescriptions[num] || `House ${num}`,
+      }));
   };
 
   const examinedHouses = getExaminedHouses();
