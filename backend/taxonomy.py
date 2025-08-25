@@ -35,7 +35,6 @@ class Category(str, Enum):
     PROPERTY = "property"
     DEATH = "death"
     SPIRITUAL = "spiritual"
-    PARTNER_HEALING = "partner_healing"
 
     # Possession sub‑categories
     VEHICLE = "vehicle"
@@ -120,7 +119,6 @@ CATEGORY_DEFAULTS: Dict[Category, Dict[str, Any]] = {
     Category.PROPERTY: {"houses": [1, 4], "significators": {}, "natural_significators": {}, "contract": {}},
     Category.DEATH: {"houses": [1, 8], "significators": {}, "natural_significators": {}, "contract": {}},
     Category.SPIRITUAL: {"houses": [1, 9], "significators": {}, "natural_significators": {}, "contract": {}},
-    Category.PARTNER_HEALING: {"houses": [7, 12], "significators": {}, "natural_significators": {}, "contract": {}},
 }
 
 

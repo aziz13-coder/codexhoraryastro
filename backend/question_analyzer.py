@@ -41,7 +41,6 @@ class TraditionalHoraryQuestionAnalyzer:
             Category.FUNDING: ["funding", "fund", "investment", "invest", "investor", "funding round", "seed", "series a", "series b", "venture capital", "vc", "angel", "capital", "raise money", "raise capital", "secure funding", "startup funding", "business loan", "loan", "loan application", "finance", "financial backing", "sponsor", "grant", "equity", "valuation"],
             Category.MONEY: ["money", "wealth", "rich", "profit", "gain", "debt", "financial", "income", "salary", "pay", "trading", "stock", "loan", "loan application"],
             Category.CAREER: ["job", "career", "work", "employment", "business", "promotion", "interview"],
-            Category.PARTNER_HEALING: ["heal", "healing", "therapy", "therapist", "mature", "maturity", "growth", "grow"],
             Category.HEALTH: ["sick", "illness", "disease", "health", "recover", "die", "cure", "healing", "medical"],
             Category.LAWSUIT: ["court", "lawsuit", "legal", "judge", "trial", "litigation", "case"],
             Category.RELATIONSHIP: ["love", "relationship", "friend", "enemy", "romance", "dating", "go out", "go out with", "date", "ask out", "see each other", "like me", "interested in", "attracted to", "reconciliation", "reconcile", "get back together", "ex", "former", "past relationship", "breakup", "break up", "makeup", "make up", "together", "couple", "partner", "boyfriend", "girlfriend", "romantic", "crush", "feelings", "attraction"],
@@ -410,12 +409,6 @@ class TraditionalHoraryQuestionAnalyzer:
         if any(word in question for word in possession_words):
             return Category.MONEY, [word for word in possession_words if word in question]
 
-        # PRIORITY 3: Partner healing or maturity questions
-        partner_words = ["partner", "spouse", "husband", "wife", "boyfriend", "girlfriend", "relationship"]
-        healing_words = ["heal", "healing", "therapy", "therapist", "mature", "maturity", "growth", "grow"]
-        if any(p in question for p in partner_words) and any(h in question for h in healing_words):
-            return Category.PARTNER_HEALING, [word for word in healing_words if word in question]
-
         # ENHANCED: Priority-based matching to handle overlapping keywords
         # Some words like "paralegal" contain "legal" but should match "education" not "lawsuit"
         
@@ -492,9 +485,6 @@ class TraditionalHoraryQuestionAnalyzer:
         elif question_type == Category.RELATIONSHIP:
             # ENHANCED: Relationship questions use L1/L7 axis (self vs others)
             houses.append(7)  # L1 = self, L7 = other person/partner
-
-        elif question_type == Category.PARTNER_HEALING:
-            houses = [7, 12]
 
         elif question_type == Category.PREGNANCY:
             if third_person_analysis and third_person_analysis.get("is_third_person"):
@@ -663,33 +653,24 @@ class TraditionalHoraryQuestionAnalyzer:
                     "third_person_pregnancy": True
                 }
             else:
-                if question_type == Category.PARTNER_HEALING:
-                    significators = {
-                        "querent_house": 7,
-                        "quesited_house": 12,
-                        "moon_role": "co-significator of querent and general flow",
-                        "special_significators": {},
-                        "transaction_type": False,
-                    }
+                # FIXED: For general questions, use 7th house. For derived house questions, use the actual target.
+                if question_type == Category.GENERAL:
+                    target_house = 7  # Traditional "other person" for general questions
+                elif question_type == Category.EDUCATION:
+                    target_house = 10  # L10 = success/honors for exams
+                elif question_type in [Category.RELATIONSHIP, Category.MARRIAGE] and 7 in houses:
+                    target_house = 7  # Relationship questions should use 7th house, not 8th
                 else:
-                    # FIXED: For general questions, use 7th house. For derived house questions, use the actual target.
-                    if question_type == Category.GENERAL:
-                        target_house = 7  # Traditional "other person" for general questions
-                    elif question_type == Category.EDUCATION:
-                        target_house = 10  # L10 = success/honors for exams
-                    elif question_type in [Category.RELATIONSHIP, Category.MARRIAGE] and 7 in houses:
-                        target_house = 7  # Relationship questions should use 7th house, not 8th
-                    else:
-                        # For derived house questions (e.g., [1, 7, 8] for husband's possessions)
-                        target_house = houses[-1] if len(houses) > 1 else 7
+                    # For derived house questions (e.g., [1, 7, 8] for husband's possessions)
+                    target_house = houses[-1] if len(houses) > 1 else 7
 
-                    significators = {
-                        "querent_house": 1,  # Always 1st house
-                        "quesited_house": target_house,  # Use the final derived house
-                        "moon_role": "co-significator of querent and general flow",
-                        "special_significators": {},
-                        "transaction_type": False
-                    }
+                significators = {
+                    "querent_house": 1,  # Always 1st house
+                    "quesited_house": target_house,  # Use the final derived house
+                    "moon_role": "co-significator of querent and general flow",
+                    "special_significators": {},
+                    "transaction_type": False
+                }
         
         # Add natural significators based on question type
         if question_type == Category.MARRIAGE:
@@ -708,9 +689,6 @@ class TraditionalHoraryQuestionAnalyzer:
         elif question_type == Category.CAREER:
             significators["special_significators"]["sun"] = "honor and reputation"
             significators["special_significators"]["jupiter"] = "success"
-        elif question_type == Category.PARTNER_HEALING:
-            significators["special_significators"]["mars"] = "fever and inflammation"
-            significators["special_significators"]["saturn"] = "chronic illness"
         elif question_type == Category.HEALTH:
             significators["special_significators"]["mars"] = "fever and inflammation"
             significators["special_significators"]["saturn"] = "chronic illness"
