@@ -5310,13 +5310,17 @@ class EnhancedTraditionalHoraryJudgmentEngine:
         if hasattr(separating_aspect, 'degrees_to_exact') and hasattr(applying_aspect, 'degrees_to_exact'):
             # For separating aspect, degrees_to_exact represents how far past exact
             # For applying aspect, degrees_to_exact represents how far to exact
-            
+
+            translation_cfg = getattr(cfg(), "translation", SimpleNamespace())
+            max_sep = getattr(translation_cfg, "max_separation_deg", 10.0)
+            max_app = getattr(translation_cfg, "max_application_deg", 15.0)
+
             # Additional validation: ensure the separation is recent enough to be meaningful
-            if separating_aspect.degrees_to_exact > 10.0:  # Too far past exact
+            if separating_aspect.degrees_to_exact > max_sep:  # Too far past exact
                 return False
-                
+
             # Ensure application is upcoming (not too far away)
-            if applying_aspect.degrees_to_exact > 15.0:  # Too far to exact
+            if applying_aspect.degrees_to_exact > max_app:  # Too far to exact
                 return False
         
         return True
