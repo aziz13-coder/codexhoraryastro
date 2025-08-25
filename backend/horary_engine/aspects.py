@@ -154,7 +154,7 @@ def calculate_moon_next_aspect(
                 t = time_to_perfection(moon_pos, planet_pos, aspect_type)
                 if t > 0:
                     within_sign = _will_perfect_before_sign_exit(
-                        moon_pos, planet_pos, aspect_type, orb_diff
+                        moon_pos, planet_pos, aspect_type
                     )
 
                     # Skip aspects that perfect after Moon leaves its current sign
@@ -259,7 +259,7 @@ def calculate_enhanced_aspects(
                     t = time_to_perfection(pos1, pos2, aspect_type)
                     applying = t > 0 and math.isfinite(t)
                     within_sign = _will_perfect_before_sign_exit(
-                        pos1, pos2, aspect_type, orb_diff
+                        pos1, pos2, aspect_type
                     )
 
                     degrees_to_exact, exact_time = calculate_enhanced_degrees_to_exact(
@@ -324,13 +324,10 @@ def is_applying_enhanced(
     whether the aspect perfects before either planet changes signs.
     """
 
-    separation = _signed_longitude_delta(pos1.longitude, pos2.longitude)
-    current_orb = abs(abs(separation) - aspect.degrees)
-
     t = time_to_perfection(pos1, pos2, aspect)
     applying = t > 0 and math.isfinite(t)
     perfection_within_sign = _will_perfect_before_sign_exit(
-        pos1, pos2, aspect, current_orb
+        pos1, pos2, aspect
     )
 
     return applying, perfection_within_sign
@@ -373,28 +370,31 @@ def _calculate_orb_to_aspect_at_time(pos1: PlanetPosition, pos2: PlanetPosition,
     return future_orb
 
 
-def _will_perfect_before_sign_exit(pos1: PlanetPosition, pos2: PlanetPosition, 
-                                 aspect: Aspect, current_orb: float) -> bool:
+def _will_perfect_before_sign_exit(
+    pos1: PlanetPosition, pos2: PlanetPosition, aspect: Aspect
+) -> bool:
     """Check if aspect will perfect before either planet exits its current sign"""
-    
-    # Calculate relative speed
-    relative_speed = abs(pos1.speed - pos2.speed)
-    if relative_speed == 0:
-        return False  # No relative motion = no perfection
-    
-    # Estimate days to perfection
-    days_to_perfect = current_orb / relative_speed
-    
-    # Check days until each planet exits its current sign
+
+    t = time_to_perfection(pos1, pos2, aspect)
+    if t <= 0 or not math.isfinite(t):
+        return False
+
     pos1_days_to_exit = days_to_sign_exit(pos1.longitude, pos1.speed)
     pos2_days_to_exit = days_to_sign_exit(pos2.longitude, pos2.speed)
-    
-    # If either planet exits sign before perfection, aspect won't perfect
-    if pos1_days_to_exit and days_to_perfect > pos1_days_to_exit:
+
+    if pos1_days_to_exit is not None and t > pos1_days_to_exit:
         return False
-    if pos2_days_to_exit and days_to_perfect > pos2_days_to_exit:
+    if pos2_days_to_exit is not None and t > pos2_days_to_exit:
         return False
-    
+
+    future_pos1_lon = (pos1.longitude + pos1.speed * t) % 360
+    future_pos2_lon = (pos2.longitude + pos2.speed * t) % 360
+
+    if int(pos1.longitude // 30) != int(future_pos1_lon // 30):
+        return False
+    if int(pos2.longitude // 30) != int(future_pos2_lon // 30):
+        return False
+
     return True
 
 
