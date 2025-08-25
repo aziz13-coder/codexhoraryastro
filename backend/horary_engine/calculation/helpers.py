@@ -100,27 +100,22 @@ def _refine_station_time(planet_id: int, jd_before: float, jd_after: float) -> f
     return (jd_before + jd_after) / 2
 
 
-def calculate_future_longitude(longitude: float, speed: float, days: float, 
-                              retrograde: bool = False) -> float:
+def calculate_future_longitude(longitude: float, speed: float, days: float) -> float:
     """
     Calculate where a planet will be in the future given current position and speed.
-    
+
     Args:
         longitude: Current longitude in degrees
-        speed: Current speed in degrees per day
+        speed: Current speed in degrees per day (negative for retrograde)
         days: Number of days in the future
-        retrograde: Whether planet is currently retrograde
-    
+
     Returns:
         Future longitude in degrees (0-360)
-    
+
     Classical source: Ptolemy Tetrabiblos - planetary motion calculations
     """
-    if retrograde:
-        future_longitude = longitude + (speed * days)  # speed is negative for retrograde
-    else:
-        future_longitude = longitude + (speed * days)
-    
+    future_longitude = longitude + (speed * days)
+
     # Normalize to 0-360 degrees
     return future_longitude % 360
 
