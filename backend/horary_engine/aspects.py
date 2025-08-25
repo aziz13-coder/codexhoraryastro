@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import datetime
+import math
 from typing import Callable, Dict, List, Optional, Tuple
 
 import swisseph as swe
@@ -13,17 +14,6 @@ try:
 except ImportError:  # pragma: no cover - fallback when executed as script
     from models import Aspect, AspectInfo, LunarAspect, Planet, PlanetPosition
 from .calculation.helpers import days_to_sign_exit
-
-
-def _orb_motion(pos1: PlanetPosition, pos2: PlanetPosition, aspect: Aspect) -> float:
-    """Signed change in orb per day between two bodies."""
-
-    diff = (
-        _signed_longitude_delta(pos1.longitude, pos2.longitude)
-        - aspect.degrees
-        + 180
-    ) % 360 - 180
-    return diff * (pos1.speed - pos2.speed)
 
 
 def _signed_longitude_delta(lon1: float, lon2: float) -> float:
@@ -194,7 +184,9 @@ def is_moon_separating_from_aspect(
     applying, _ = is_applying_enhanced(moon_pos, planet_pos, aspect, jd_ut)
     if applying:
         return False
-    return _orb_motion(moon_pos, planet_pos, aspect) > 0
+    diff = _signed_longitude_delta(moon_pos.longitude, planet_pos.longitude) - aspect.degrees
+    speed_diff = moon_pos.speed - planet_pos.speed
+    return diff != 0 and speed_diff != 0 and math.copysign(1, diff) == math.copysign(1, speed_diff)
 
 
 def is_moon_applying_to_aspect(
@@ -327,14 +319,12 @@ def is_applying_enhanced(
     whether the aspect perfects before either planet changes signs.
     """
 
-    diff = (
-        _signed_longitude_delta(pos1.longitude, pos2.longitude)
-        - aspect.degrees
-        + 180
-    ) % 360 - 180
-    current_orb = abs(diff)
+    separation = _signed_longitude_delta(pos1.longitude, pos2.longitude)
+    diff = separation - aspect.degrees
+    current_orb = abs(abs(separation) - aspect.degrees)
 
-    applying = _orb_motion(pos1, pos2, aspect) < 0
+    speed_diff = pos1.speed - pos2.speed
+    applying = diff != 0 and speed_diff != 0 and math.copysign(1, diff) != math.copysign(1, speed_diff)
     perfection_within_sign = _will_perfect_before_sign_exit(
         pos1, pos2, aspect, current_orb
     )
