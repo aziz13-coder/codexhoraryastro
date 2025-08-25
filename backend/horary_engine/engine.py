@@ -3826,12 +3826,13 @@ class EnhancedTraditionalHoraryJudgmentEngine:
                 return {
                     "perfects": True,
                     "type": "collection",
-                    "favorable": collection["favorable"],  # Now always True for collection
+                    "favorable": collection["favorable"],
                     "confidence": max(collection.get("confidence", 50), 40),  # Ensure minimum confidence
                     "reason": enhanced_reason,
                     "collector": collection["collector"],
                     "challenge_reasons": challenge_reasons,  # New field for challenges
                     "negative_reasons": collection.get("negative_reasons", []),  # Backward compatibility
+                    "candidates": collection.get("candidates"),
                     "tags": [{"family": "perfection", "kind": "col"}],
                 }
         
@@ -4290,7 +4291,9 @@ class EnhancedTraditionalHoraryJudgmentEngine:
         """Traditional collection of light following Lilly's rules"""
         
         config = cfg()
-        
+
+        candidates: List[Dict[str, Any]] = []
+
         for planet, pos in chart.planets.items():
             if planet in [querent, quesited]:
                 continue
@@ -4332,7 +4335,7 @@ class EnhancedTraditionalHoraryJudgmentEngine:
                 timing_valid = False
             if quesited_days_to_sign and quesited_collection_days > quesited_days_to_sign:
                 timing_valid = False
-            
+
             if not timing_valid:
                 continue
             
@@ -4355,28 +4358,41 @@ class EnhancedTraditionalHoraryJudgmentEngine:
                 base_confidence -= 20  # Combust collector less reliable - challenge, not failure
                 challenge_reasons.append("collector combust")
 
-            # Traditional doctrine: Collection of light = perfection = always favorable
-            # Hard aspects indicate challenges in the process, not failure
-            favorable = True  # Collection always indicates success via perfection
-            if (aspects_from_querent["aspect"] in [Aspect.SQUARE, Aspect.OPPOSITION] or
-                aspects_from_quesited["aspect"] in [Aspect.SQUARE, Aspect.OPPOSITION]):
-                # Hard aspects show difficult path to success, not failure
+            # Aspect quality influences outcome
+            hard_aspect = (
+                aspects_from_querent["aspect"] in [Aspect.SQUARE, Aspect.OPPOSITION]
+                or aspects_from_quesited["aspect"] in [Aspect.SQUARE, Aspect.OPPOSITION]
+            )
+            if hard_aspect:
                 base_confidence -= 15  # Reduce confidence due to challenges
                 challenge_reasons.append("hard aspect")
-            
-            return {
-                "found": True,
-                "collector": planet,
-                "favorable": favorable,
-                "confidence": min(90, max(30, base_confidence)),
-                "strength": collector_strength,
-                "timing_valid": True,
-                "reception": "both_receive_collector",
-                "challenge_reasons": challenge_reasons,  # Challenges in path to success
-                "negative_reasons": []  # Keep empty for backward compatibility
-            }
-        
-        return {"found": False}
+
+            favorable = collector_strength >= 0 and not hard_aspect
+
+            days_to_perfection = max(querent_collection_days, quesited_collection_days)
+
+            candidates.append(
+                {
+                    "collector": planet,
+                    "favorable": favorable,
+                    "confidence": min(90, max(30, base_confidence)),
+                    "strength": collector_strength,
+                    "timing_valid": True,
+                    "reception": "both_receive_collector",
+                    "challenge_reasons": challenge_reasons,
+                    "negative_reasons": [],
+                    "days_to_perfection": days_to_perfection,
+                }
+            )
+
+        if not candidates:
+            return {"found": False, "candidates": []}
+
+        candidates.sort(key=lambda c: (-c["strength"], c["days_to_perfection"]))
+        best = candidates[0]
+        result = dict(best)
+        result.update({"found": True, "candidates": candidates})
+        return result
 
     def _evaluate_blockers(self, chart: HoraryChart, querent: Planet, quesited: Planet,
                            moon_next_aspect: Dict[str, Any], solar_factors: Dict[str, Any],
