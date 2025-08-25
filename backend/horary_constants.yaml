@@ -106,6 +106,8 @@ translation:
   require_speed_advantage: true  # Translator must be faster than significators
   require_proper_sequence: true   # Must separate then apply
   require_reception: false        # Reception not mandatory
+  max_separation_deg: 10.0        # Maximum degrees past exact for separating aspect
+  max_application_deg: 15.0       # Maximum degrees to exact for applying aspect
 
 collection:
   require_collector_dignity: true # Collector should be dignified
